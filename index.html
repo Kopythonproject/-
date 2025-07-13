@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>멍때리는 게임</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #a3d977; /* 풀밭색 */
+      overflow: hidden;
+    }
+    #field {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    #rock {
+      position: absolute;
+      width: 150px;
+      height: 100px;
+      background-color: gray;
+      border-radius: 50%;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+    }
+    .leaf, .pebble {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      z-index: 2;
+      animation: fadeInOut 5s linear forwards;
+    }
+    .leaf {
+      background-color: green;
+    }
+    .pebble {
+      background-color: #666;
+    }
+    .rain {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(173, 216, 230, 0.4);
+      z-index: 3;
+      animation: fadeInOut 5s linear forwards;
+      pointer-events: none;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="field">
+    <div id="rock"></div>
+  </div>
+
+  <script>
+    const field = document.getElementById('field');
+    const rock = document.getElementById('rock');
+
+    function createLeaf() {
+      const leaf = document.createElement('div');
+      leaf.className = 'leaf';
+      positionOnRock(leaf);
+      field.appendChild(leaf);
+      setTimeout(() => field.removeChild(leaf), 5000);
+    }
+
+    function createRain() {
+      const rain = document.createElement('div');
+      rain.className = 'rain';
+      field.appendChild(rain);
+      setTimeout(() => field.removeChild(rain), 5000);
+    }
+
+    function createPebble() {
+      const pebble = document.createElement('div');
+      pebble.className = 'pebble';
+      positionOnRock(pebble);
+      field.appendChild(pebble);
+      setTimeout(() => field.removeChild(pebble), 5000);
+    }
+
+    function positionOnRock(element) {
+      const rockRect = rock.getBoundingClientRect();
+      const fieldRect = field.getBoundingClientRect();
+      const x = rockRect.left + rockRect.width / 2 - fieldRect.left - 15;
+      const y = rockRect.top - fieldRect.top - 20;
+      element.style.left = `${x}px`;
+      element.style.top = `${y}px`;
+    }
+
+    function triggerEvent() {
+      const rand = Math.random();
+      if (rand < 0.88) {
+        createLeaf();
+      } else if (rand < 0.94) {
+        createRain();
+      } else {
+        createPebble();
+      }
+    }
+
+    // 첫 이벤트 실행까지 기다림
+    setInterval(triggerEvent, 10000);
+  </script>
+</body>
+</html>
