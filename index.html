@@ -2,12 +2,13 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>멍때리는 게임 - 업그레이드</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>멍때리는 게임 - 모바일 대응</title>
   <style>
     /* 배경과 필드 */
     body {
       margin: 0;
-      background: linear-gradient(to top, #78a22f, #a3d977); /* 풀밭 그라데이션 */
+      background: linear-gradient(to top, #78a22f, #a3d977);
       overflow: hidden;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       user-select: none;
@@ -17,17 +18,20 @@
       height: 100vh;
       color: #fff;
       text-shadow: 0 0 5px rgba(0,0,0,0.7);
+      -webkit-tap-highlight-color: transparent; /* 모바일 터치 하이라이트 제거 */
     }
 
     #clickCount {
       margin: 20px;
-      font-size: 24px;
+      font-size: 1.5rem;
       font-weight: bold;
       background: rgba(0,0,0,0.3);
       padding: 10px 20px;
       border-radius: 15px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.3);
       user-select: none;
+      max-width: 90vw;
+      text-align: center;
     }
 
     #field {
@@ -43,13 +47,14 @@
       justify-content: center;
       align-items: flex-end;
       padding-bottom: 80px;
+      touch-action: manipulation;
     }
 
     /* 바위 기본 스타일 */
     #rock {
       position: relative;
-      width: 180px;
-      height: 110px;
+      width: 140px;
+      height: 85px;
       border-radius: 50% / 40%;
       cursor: pointer;
       box-shadow: inset -20px -15px 20px rgba(255,255,255,0.2),
@@ -58,6 +63,8 @@
       transition: transform 0.15s ease;
       z-index: 10;
       user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     #rock:active {
       transform: scale(0.95);
@@ -87,8 +94,8 @@
     /* 나뭇잎, 조약돌 아이콘 스타일 */
     .event-item {
       position: absolute;
-      width: 35px;
-      height: 35px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       opacity: 0;
       animation: fadeInOut 5s forwards;
@@ -97,7 +104,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 22px;
+      font-size: 18px;
       color: white;
       text-shadow: 0 0 3px rgba(0,0,0,0.7);
       user-select: none;
@@ -117,8 +124,8 @@
     .raindrop {
       background: linear-gradient(135deg, #5ec0ff, #0f5fa5);
       border-radius: 50% / 60%;
-      width: 15px;
-      height: 25px;
+      width: 12px;
+      height: 20px;
       box-shadow: 0 0 8px #3f9fff;
       position: absolute;
       opacity: 0.8;
@@ -152,6 +159,44 @@
       0% { top: -30px; opacity: 0.8; }
       100% { top: 100vh; opacity: 0; }
     }
+
+    /* 모바일 및 화면 축소 대응 */
+    @media (max-width: 480px) {
+      #clickCount {
+        font-size: 1.2rem;
+        padding: 8px 16px;
+      }
+      #rock {
+        width: 120px;
+        height: 75px;
+      }
+      .event-item {
+        width: 22px;
+        height: 22px;
+        font-size: 14px;
+      }
+      .raindrop {
+        width: 10px;
+        height: 18px;
+      }
+    }
+
+    /* prefers-reduced-motion 활성시 애니메이션 제거 */
+    @media (prefers-reduced-motion: reduce) {
+      .event-item,
+      .raindrop,
+      .rain-overlay {
+        animation: none !important;
+        opacity: 1 !important;
+        transition: none !important;
+      }
+      #rock:active {
+        transform: none !important;
+        box-shadow: inset -20px -15px 20px rgba(255,255,255,0.2),
+                    inset 20px 15px 30px rgba(0,0,0,0.5),
+                    0 10px 15px rgba(0,0,0,0.5);
+      }
+    }
   </style>
 </head>
 <body>
@@ -168,12 +213,6 @@
     let clickCount = 0;
     let rockType = 'sandstone'; // sandstone, pebble
 
-    // 3가지 이벤트 (동일확률)
-    // 각 돌 타입별로 이벤트는 아래 3가지가 동일 확률로 발생
-    // 사암(sandstone): 잎, 비, 작은 조약돌
-    // 조약돌(pebble): 잎, 비, 작은 조약돌
-
-    // 이벤트 함수들
     function createLeaf() {
       const leaf = document.createElement('div');
       leaf.className = 'event-item leaf';
@@ -190,14 +229,12 @@
       setTimeout(() => pebble.remove(), 5000);
     }
 
-    // 비 이벤트는 5초간 필드에 비 애니메이션 추가
     function createRain() {
       const rainOverlay = document.createElement('div');
       rainOverlay.className = 'rain-overlay';
       field.appendChild(rainOverlay);
 
-      // 여러 raindrop 생성
-      const raindropCount = 50;
+      const raindropCount = 40;
       for(let i=0; i<raindropCount; i++) {
         const drop = document.createElement('div');
         drop.className = 'raindrop';
@@ -206,11 +243,9 @@
         drop.style.animationDelay = `${Math.random()*5}s`;
         rainOverlay.appendChild(drop);
       }
-      // 5초 후 제거
       setTimeout(() => rainOverlay.remove(), 5000);
     }
 
-    // 바위 위에 이벤트 아이템 위치 지정 (중앙 위 약간 올림)
     function positionOnRock(el) {
       const rockRect = rock.getBoundingClientRect();
       const fieldRect = field.getBoundingClientRect();
@@ -220,7 +255,6 @@
       el.style.top = `${y}px`;
     }
 
-    // 이벤트 3가지 중 하나 랜덤 실행
     function triggerEvent() {
       const rand = Math.random();
       if (rand < 1/3) {
@@ -232,12 +266,10 @@
       }
     }
 
-    // 바위 클릭 이벤트
     rock.addEventListener('click', () => {
       clickCount++;
       clickCountElem.textContent = `돌 클릭 수: ${clickCount}`;
 
-      // 클릭 수에 따른 바위 타입 변경
       if (clickCount === 100) {
         rockType = 'pebble';
         rock.classList.remove('sandstone');
@@ -249,14 +281,9 @@
         rock.classList.add('sandstone');
         alert('바위가 다시 사암으로 변했습니다!');
       }
-
     });
 
-    // 10초마다 이벤트 실행
-    setInterval(() => {
-      triggerEvent();
-    }, 10000);
-
+    setInterval(triggerEvent, 10000);
   </script>
 </body>
 </html>
