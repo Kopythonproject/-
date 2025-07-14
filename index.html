@@ -1,289 +1,293 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>멍때리는 게임 - 모바일 대응</title>
-  <style>
-    /* 배경과 필드 */
-    body {
-      margin: 0;
-      background: linear-gradient(to top, #78a22f, #a3d977);
-      overflow: hidden;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      user-select: none;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      height: 100vh;
-      color: #fff;
-      text-shadow: 0 0 5px rgba(0,0,0,0.7);
-      -webkit-tap-highlight-color: transparent; /* 모바일 터치 하이라이트 제거 */
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>멍때리는 게임 - 모바일 더블탭 방지 및 자연스러운 이벤트</title>
+<style>
+  body {
+    margin: 0;
+    background: linear-gradient(to top, #78a22f, #a3d977);
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    color: #fff;
+    text-shadow: 0 0 5px rgba(0,0,0,0.7);
+    -webkit-tap-highlight-color: transparent;
+  }
+  #clickCount {
+    margin: 20px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    background: rgba(0,0,0,0.3);
+    padding: 10px 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    user-select: none;
+    max-width: 90vw;
+    text-align: center;
+  }
+  #field {
+    position: relative;
+    flex-grow: 1;
+    width: 100vw;
+    max-width: 800px;
+    background: linear-gradient(to bottom, #a3d977 40%, #4a8a15 100%);
+    overflow: hidden;
+    border-radius: 0 0 40px 40px;
+    box-shadow: inset 0 20px 60px #2e5e00;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 80px;
+    touch-action: manipulation; /* 모바일 더블탭 방지 */
+  }
+  #rock {
+    position: relative;
+    width: 140px;
+    height: 85px;
+    border-radius: 50% / 40%;
+    cursor: pointer;
+    box-shadow: inset -20px -15px 20px rgba(255,255,255,0.2),
+                inset 20px 15px 30px rgba(0,0,0,0.5),
+                0 10px 15px rgba(0,0,0,0.5);
+    transition: transform 0.15s ease;
+    z-index: 10;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  #rock:active {
+    transform: scale(0.95);
+    box-shadow: inset -15px -12px 15px rgba(255,255,255,0.3),
+                inset 15px 12px 25px rgba(0,0,0,0.6),
+                0 5px 8px rgba(0,0,0,0.4);
+  }
+  #rock.sandstone {
+    background: linear-gradient(145deg, #d2b48c, #b89a6b);
+    border: 2px solid #a67c52;
+    box-shadow: inset -20px -15px 20px #e6c89c,
+                inset 20px 15px 30px #a0723a,
+                0 10px 15px rgba(160,120,60,0.7);
+  }
+  #rock.pebble {
+    background: linear-gradient(145deg, #555555, #333333);
+    border: 2px solid #222222;
+    box-shadow: inset -20px -15px 20px #888888,
+                inset 20px 15px 30px #222222,
+                0 10px 15px rgba(0,0,0,0.7);
+  }
 
+  /* 나뭇잎 스타일 */
+  .event-item.leaf {
+    position: absolute;
+    width: 30px;
+    height: 18px;
+    background: linear-gradient(45deg, #3b7d1f, #a4d04e);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    box-shadow:
+      inset 0 -2px 3px #2f5e17,
+      0 2px 3px rgba(0,0,0,0.2);
+    pointer-events: none;
+    opacity: 0;
+    animation: fadeInOut 5s forwards;
+    z-index: 15;
+  }
+  /* 잎맥: before로 중앙 선 */
+  .event-item.leaf::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 14px;
+    background: #2b5e11;
+    border-radius: 1px;
+    box-shadow:
+      0 3px 0 #2b5e11,
+      0 -3px 0 #2b5e11;
+  }
+
+  /* 조약돌 스타일 */
+  .event-item.pebble-event {
+    position: absolute;
+    width: 24px;
+    height: 20px;
+    background: radial-gradient(circle at 40% 40%, #aaa, #555);
+    border-radius: 40% 60% 55% 45% / 60% 50% 70% 40%;
+    box-shadow:
+      inset 0 2px 4px #888,
+      0 1px 3px rgba(0,0,0,0.3);
+    pointer-events: none;
+    opacity: 0;
+    animation: fadeInOut 5s forwards;
+    z-index: 15;
+  }
+
+  /* 비 스타일 (조금 수정) */
+  .rain-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 12;
+  }
+  .raindrop {
+    position: absolute;
+    background: linear-gradient(135deg, #5ec0ff, #0f5fa5);
+    border-radius: 50% / 60%;
+    width: 10px;
+    height: 18px;
+    box-shadow: 0 0 8px #3f9fff;
+    opacity: 0.8;
+    animation-name: rainFall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    pointer-events: none;
+    user-select: none;
+    z-index: 20;
+  }
+  @keyframes fadeInOut {
+    0% { opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes rainFall {
+    0% { top: -30px; opacity: 0.8; }
+    100% { top: 100vh; opacity: 0; }
+  }
+
+  /* 모바일 대응 */
+  @media (max-width: 480px) {
     #clickCount {
-      margin: 20px;
-      font-size: 1.5rem;
-      font-weight: bold;
-      background: rgba(0,0,0,0.3);
-      padding: 10px 20px;
-      border-radius: 15px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-      user-select: none;
-      max-width: 90vw;
-      text-align: center;
+      font-size: 1.2rem;
+      padding: 8px 16px;
     }
-
-    #field {
-      position: relative;
-      flex-grow: 1;
-      width: 100vw;
-      max-width: 800px;
-      background: linear-gradient(to bottom, #a3d977 40%, #4a8a15 100%);
-      overflow: hidden;
-      border-radius: 0 0 40px 40px;
-      box-shadow: inset 0 20px 60px #2e5e00;
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-      padding-bottom: 80px;
-      touch-action: manipulation;
-    }
-
-    /* 바위 기본 스타일 */
     #rock {
-      position: relative;
-      width: 140px;
-      height: 85px;
-      border-radius: 50% / 40%;
-      cursor: pointer;
+      width: 120px;
+      height: 75px;
+    }
+    .event-item.leaf {
+      width: 24px;
+      height: 14px;
+    }
+    .event-item.pebble-event {
+      width: 20px;
+      height: 16px;
+    }
+    .raindrop {
+      width: 8px;
+      height: 14px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .event-item,
+    .raindrop,
+    .rain-overlay {
+      animation: none !important;
+      opacity: 1 !important;
+      transition: none !important;
+    }
+    #rock:active {
+      transform: none !important;
       box-shadow: inset -20px -15px 20px rgba(255,255,255,0.2),
                   inset 20px 15px 30px rgba(0,0,0,0.5),
                   0 10px 15px rgba(0,0,0,0.5);
-      transition: transform 0.15s ease;
-      z-index: 10;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
     }
-    #rock:active {
-      transform: scale(0.95);
-      box-shadow: inset -15px -12px 15px rgba(255,255,255,0.3),
-                  inset 15px 12px 25px rgba(0,0,0,0.6),
-                  0 5px 8px rgba(0,0,0,0.4);
-    }
-
-    /* 사암 스타일 */
-    #rock.sandstone {
-      background: linear-gradient(145deg, #d2b48c, #b89a6b);
-      border: 2px solid #a67c52;
-      box-shadow: inset -20px -15px 20px #e6c89c,
-                  inset 20px 15px 30px #a0723a,
-                  0 10px 15px rgba(160,120,60,0.7);
-    }
-
-    /* 조약돌 스타일 */
-    #rock.pebble {
-      background: linear-gradient(145deg, #555555, #333333);
-      border: 2px solid #222222;
-      box-shadow: inset -20px -15px 20px #888888,
-                  inset 20px 15px 30px #222222,
-                  0 10px 15px rgba(0,0,0,0.7);
-    }
-
-    /* 나뭇잎, 조약돌 아이콘 스타일 */
-    .event-item {
-      position: absolute;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      opacity: 0;
-      animation: fadeInOut 5s forwards;
-      pointer-events: none;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 18px;
-      color: white;
-      text-shadow: 0 0 3px rgba(0,0,0,0.7);
-      user-select: none;
-      z-index: 15;
-    }
-
-    .leaf {
-      background: linear-gradient(135deg, #2d8a1d, #6dc64a);
-      border: 2px solid #1c5b0d;
-      box-shadow: inset 0 0 8px #2fa529;
-    }
-    .pebble-event {
-      background: linear-gradient(135deg, #777777, #444444);
-      border: 2px solid #222;
-      box-shadow: inset 0 0 10px #555;
-    }
-    .raindrop {
-      background: linear-gradient(135deg, #5ec0ff, #0f5fa5);
-      border-radius: 50% / 60%;
-      width: 12px;
-      height: 20px;
-      box-shadow: 0 0 8px #3f9fff;
-      position: absolute;
-      opacity: 0.8;
-      animation-name: rainFall;
-      animation-timing-function: linear;
-      animation-iteration-count: infinite;
-      pointer-events: none;
-      user-select: none;
-      z-index: 20;
-    }
-
-    /* 비 전체 오버레이 */
-    .rain-overlay {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      pointer-events: none;
-      overflow: hidden;
-      z-index: 12;
-    }
-
-    /* 비 애니메이션 */
-    @keyframes fadeInOut {
-      0% { opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { opacity: 0; }
-    }
-
-    @keyframes rainFall {
-      0% { top: -30px; opacity: 0.8; }
-      100% { top: 100vh; opacity: 0; }
-    }
-
-    /* 모바일 및 화면 축소 대응 */
-    @media (max-width: 480px) {
-      #clickCount {
-        font-size: 1.2rem;
-        padding: 8px 16px;
-      }
-      #rock {
-        width: 120px;
-        height: 75px;
-      }
-      .event-item {
-        width: 22px;
-        height: 22px;
-        font-size: 14px;
-      }
-      .raindrop {
-        width: 10px;
-        height: 18px;
-      }
-    }
-
-    /* prefers-reduced-motion 활성시 애니메이션 제거 */
-    @media (prefers-reduced-motion: reduce) {
-      .event-item,
-      .raindrop,
-      .rain-overlay {
-        animation: none !important;
-        opacity: 1 !important;
-        transition: none !important;
-      }
-      #rock:active {
-        transform: none !important;
-        box-shadow: inset -20px -15px 20px rgba(255,255,255,0.2),
-                    inset 20px 15px 30px rgba(0,0,0,0.5),
-                    0 10px 15px rgba(0,0,0,0.5);
-      }
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
-  <div id="clickCount">돌 클릭 수: 0</div>
-  <div id="field">
-    <div id="rock" class="sandstone" title="돌을 클릭하세요!"></div>
-  </div>
+<div id="clickCount">돌 클릭 수: 0</div>
+<div id="field">
+  <div id="rock" class="sandstone" title="돌을 클릭하세요!"></div>
+</div>
+<script>
+  const rock = document.getElementById('rock');
+  const field = document.getElementById('field');
+  const clickCountElem = document.getElementById('clickCount');
 
-  <script>
-    const rock = document.getElementById('rock');
-    const field = document.getElementById('field');
-    const clickCountElem = document.getElementById('clickCount');
+  let clickCount = 0;
+  let rockType = 'sandstone'; // sandstone, pebble
 
-    let clickCount = 0;
-    let rockType = 'sandstone'; // sandstone, pebble
+  function createLeaf() {
+    const leaf = document.createElement('div');
+    leaf.className = 'event-item leaf';
+    positionOnRock(leaf);
+    field.appendChild(leaf);
+    setTimeout(() => leaf.remove(), 5000);
+  }
 
-    function createLeaf() {
-      const leaf = document.createElement('div');
-      leaf.className = 'event-item leaf';
-      positionOnRock(leaf);
-      field.appendChild(leaf);
-      setTimeout(() => leaf.remove(), 5000);
+  function createPebbleEvent() {
+    const pebble = document.createElement('div');
+    pebble.className = 'event-item pebble-event';
+    positionOnRock(pebble);
+    field.appendChild(pebble);
+    setTimeout(() => pebble.remove(), 5000);
+  }
+
+  function createRain() {
+    const rainOverlay = document.createElement('div');
+    rainOverlay.className = 'rain-overlay';
+    field.appendChild(rainOverlay);
+
+    const raindropCount = 40;
+    for(let i=0; i<raindropCount; i++) {
+      const drop = document.createElement('div');
+      drop.className = 'raindrop';
+      drop.style.left = `${Math.random()*100}%`;
+      drop.style.animationDuration = `${(Math.random()*1+0.8)*1.5}s`;
+      drop.style.animationDelay = `${Math.random()*5}s`;
+      rainOverlay.appendChild(drop);
     }
+    setTimeout(() => rainOverlay.remove(), 5000);
+  }
 
-    function createPebbleEvent() {
-      const pebble = document.createElement('div');
-      pebble.className = 'event-item pebble-event';
-      positionOnRock(pebble);
-      field.appendChild(pebble);
-      setTimeout(() => pebble.remove(), 5000);
+  function positionOnRock(el) {
+    const rockRect = rock.getBoundingClientRect();
+    const fieldRect = field.getBoundingClientRect();
+    const x = rockRect.left + rockRect.width/2 - fieldRect.left - el.offsetWidth/2;
+    const y = rockRect.top - fieldRect.top - el.offsetHeight + 20;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+  }
+
+  function triggerEvent() {
+    const rand = Math.random();
+    if (rand < 1/3) {
+      createLeaf();
+    } else if (rand < 2/3) {
+      createRain();
+    } else {
+      createPebbleEvent();
     }
+  }
 
-    function createRain() {
-      const rainOverlay = document.createElement('div');
-      rainOverlay.className = 'rain-overlay';
-      field.appendChild(rainOverlay);
+  rock.addEventListener('click', () => {
+    clickCount++;
+    clickCountElem.textContent = `돌 클릭 수: ${clickCount}`;
 
-      const raindropCount = 40;
-      for(let i=0; i<raindropCount; i++) {
-        const drop = document.createElement('div');
-        drop.className = 'raindrop';
-        drop.style.left = `${Math.random()*100}%`;
-        drop.style.animationDuration = `${(Math.random()*1+0.8)*1.5}s`;
-        drop.style.animationDelay = `${Math.random()*5}s`;
-        rainOverlay.appendChild(drop);
-      }
-      setTimeout(() => rainOverlay.remove(), 5000);
+    if (clickCount === 100) {
+      rockType = 'pebble';
+      rock.classList.remove('sandstone');
+      rock.classList.add('pebble');
+      alert('바위가 사암에서 조약돌로 변했습니다!');
+    } else if (clickCount === 200) {
+      rockType = 'sandstone';
+      rock.classList.remove('pebble');
+      rock.classList.add('sandstone');
+      alert('바위가 다시 사암으로 변했습니다!');
     }
+  });
 
-    function positionOnRock(el) {
-      const rockRect = rock.getBoundingClientRect();
-      const fieldRect = field.getBoundingClientRect();
-      const x = rockRect.left + rockRect.width/2 - fieldRect.left - el.offsetWidth/2;
-      const y = rockRect.top - fieldRect.top - el.offsetHeight + 20;
-      el.style.left = `${x}px`;
-      el.style.top = `${y}px`;
-    }
-
-    function triggerEvent() {
-      const rand = Math.random();
-      if (rand < 1/3) {
-        createLeaf();
-      } else if (rand < 2/3) {
-        createRain();
-      } else {
-        createPebbleEvent();
-      }
-    }
-
-    rock.addEventListener('click', () => {
-      clickCount++;
-      clickCountElem.textContent = `돌 클릭 수: ${clickCount}`;
-
-      if (clickCount === 100) {
-        rockType = 'pebble';
-        rock.classList.remove('sandstone');
-        rock.classList.add('pebble');
-        alert('바위가 사암에서 조약돌로 변했습니다!');
-      } else if (clickCount === 200) {
-        rockType = 'sandstone';
-        rock.classList.remove('pebble');
-        rock.classList.add('sandstone');
-        alert('바위가 다시 사암으로 변했습니다!');
-      }
-    });
-
-    setInterval(triggerEvent, 10000);
-  </script>
+  setInterval(triggerEvent, 10000);
+</script>
 </body>
 </html>
